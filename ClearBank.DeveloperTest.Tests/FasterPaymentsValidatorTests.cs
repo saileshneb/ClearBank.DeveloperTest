@@ -1,5 +1,7 @@
+using System;
 using ClearBank.DeveloperTest.Services.Validators;
 using ClearBank.DeveloperTest.Types;
+using ClearBank.DeveloperTest.Types.Domain;
 using Xunit;
 
 namespace ClearBank.DeveloperTest.Tests
@@ -9,7 +11,12 @@ namespace ClearBank.DeveloperTest.Tests
         private readonly FasterPaymentsValidator _sut = new FasterPaymentsValidator();
 
         private MakePaymentRequest Request(decimal amount = 50m) =>
-            new MakePaymentRequest { PaymentScheme = PaymentScheme.FasterPayments, Amount = amount };
+        new MakePaymentRequest(
+            "1234",
+            "3456",
+            amount,
+            DateTime.UtcNow,
+            PaymentScheme.FasterPayments);
 
         [Fact]
         public void GivenFasterPaymentValidator_SupportedScheme_IsFasterPayments()

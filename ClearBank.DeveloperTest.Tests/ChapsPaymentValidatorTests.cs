@@ -1,5 +1,7 @@
+using System;
 using ClearBank.DeveloperTest.Services.Validators;
 using ClearBank.DeveloperTest.Types;
+using ClearBank.DeveloperTest.Types.Domain;
 using Xunit;
 
 namespace ClearBank.DeveloperTest.Tests
@@ -7,7 +9,12 @@ namespace ClearBank.DeveloperTest.Tests
     public class ChapsPaymentValidatorTests
     {
         private readonly ChapsPaymentValidator _sut = new ChapsPaymentValidator();
-        private readonly MakePaymentRequest _request = new MakePaymentRequest { PaymentScheme = PaymentScheme.Chaps };
+        private readonly MakePaymentRequest _request = new(
+            "1234",
+            "3456",
+            10m,
+            DateTime.UtcNow,
+            PaymentScheme.Chaps);
 
         [Fact]
         public void GivenChapsValidator_SupportedScheme_IsChaps()

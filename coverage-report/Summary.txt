@@ -1,0 +1,37 @@
+Summary
+  Generated on: 08/03/2026 - 17:39:59
+  Coverage date: 08/03/2026 - 17:24:15 - 08/03/2026 - 17:39:59
+  Parser: MultiReport (2x Cobertura)
+  Assemblies: 1
+  Classes: 15
+  Files: 15
+  Line coverage: 94.3%
+  Covered lines: 199
+  Uncovered lines: 12
+  Coverable lines: 211
+  Total lines: 436
+  Branch coverage: 94.1% (32 of 34)
+  Covered branches: 32
+  Total branches: 34
+  Method coverage: 92.4% (49 of 53)
+  Full method coverage: 90.5% (48 of 53)
+  Covered methods: 49
+  Fully covered methods: 48
+  Total methods: 53
+
+ClearBank.DeveloperTest                                                 94.3%
+  ClearBank.DeveloperTest.Data.AccountDataStore                            0%
+  ClearBank.DeveloperTest.Data.AccountDataStoreFactory                   100%
+  ClearBank.DeveloperTest.Data.BackupAccountDataStore                      0%
+  ClearBank.DeveloperTest.Extensions.PaymentRequestResultConverters      100%
+  ClearBank.DeveloperTest.Services.PaymentService                       95.9%
+  ClearBank.DeveloperTest.Services.Validators.BacsPaymentValidator       100%
+  ClearBank.DeveloperTest.Services.Validators.ChapsPaymentValidator      100%
+  ClearBank.DeveloperTest.Services.Validators.FasterPaymentsValidator    100%
+  ClearBank.DeveloperTest.Services.Validators.PaymentRequestValidator    100%
+  ClearBank.DeveloperTest.Services.Validators.ValidationResult           100%
+  ClearBank.DeveloperTest.Types.Domain.Account                           100%
+  ClearBank.DeveloperTest.Types.Domain.PaymentRequestDto                 100%
+  ClearBank.DeveloperTest.Types.Domain.PaymentResultDto                  100%
+  ClearBank.DeveloperTest.Types.MakePaymentRequest                       100%
+  ClearBank.DeveloperTest.Types.MakePaymentResult                        100%

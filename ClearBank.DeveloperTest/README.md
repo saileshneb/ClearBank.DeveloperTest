@@ -4,133 +4,106 @@ In the 'PaymentService.cs' file you will find a method for making a payment. At 
  - Lookup the account the payment is being made from
  - Check the account is in a valid state to make the payment
  - Deduct the payment amount from the account's balance and update the account in the database
- 
-What we’d like you to do is refactor the code with the following things in mind:  
- - Adherence to SOLID principals
- - Testability  
- - Readability 
 
-We’d also like you to add some unit tests to the ClearBank.DeveloperTest.Tests project to show how you would test the code that you’ve produced. The only specific ‘rules’ are:  
+What we'd like you to do is refactor the code with the following things in mind:
+ - Adherence to SOLID principals
+ - Testability
+ - Readability
+
+We'd also like you to add some unit tests to the ClearBank.DeveloperTest.Tests project to show how you would test the code that you've produced. The only specific 'rules' are:
 
  - The solution should build.
  - The tests should all pass.
  - You should not change the method signature of the MakePayment method.
 
-You are free to use any frameworks/NuGet packages that you see fit.  
- 
+You are free to use any frameworks/NuGet packages that you see fit.
+
 You should plan to spend around 1 to 3 hours to complete the exercise.
 
-### This solution has the following implementation
+---
 
-A .NET 8 solution implementing a payment processing service with full unit test coverage, refactored with SOLID principles, testability, and readability in mind.
+### Implementation
 
-## Original Brief
+A .NET 8 solution implementing a payment processing service, refactored with SOLID principles, testability, and readability in mind.
 
-Refactor `PaymentService` to adhere to SOLID principles, improve testability and readability, and add unit tests. Constraints:
+#### Architecture
 
-- Solution must build
-- All tests must pass
-- `MakePayment` method signature must not change
+**`PaymentService`** orchestrates a payment by:
+1. Resolving the correct data store via `IAccountDataStoreFactory` (driven by configuration)
+2. Looking up debtor and creditor accounts
+3. Delegating payment scheme validation to `IPaymentRequestValidator`
+4. Validating withdraw and deposit amounts on the `Account` domain object
+5. Executing the transfer within a unit-of-work transaction
 
-## Solution Structure
+**Key design decisions:**
+
+- **Strategy pattern for validators** — Each payment scheme (`Bacs`, `Chaps`, `FasterPayments`) is a separate `IPaymentSchemaValidator` implementation. `PaymentRequestValidator` resolves the correct one by matching `SupportedScheme`, making it trivial to add new schemes without touching existing code (Open/Closed).
+- **Factory for data store selection** — `AccountDataStoreFactory` reads `DataStoreType` from configuration and returns either `AccountDataStore` or `BackupAccountDataStore`, keeping infrastructure selection out of the service.
+- **Domain validation on `Account`** — `ValidateWithdraw` and `ValidateDeposit` live on the `Account` entity rather than in the service, keeping balance rules cohesive with the data they operate on.
+- **Internal DTOs** — `PaymentRequestDto` and `PaymentResultDto` decouple internal processing from the public API types (`MakePaymentRequest` / `MakePaymentResult`). Extension methods in `PaymentRequestResultConverters` handle mapping at the boundary.
+- **Unit of work / transaction** — `IUnitOfWork` and `ITransaction` abstract the transactional boundary, making the service testable without a real database.
+
+#### Project Structure
 
 ```
-ClearBank.DeveloperTest/          # Main library
-ClearBank.DeveloperTest.Tests/    # Unit tests
+ClearBank.DeveloperTest/
+├── Data/
+│   ├── IAccountDataStore.cs          # Data store abstraction
+│   ├── IAccountDataStoreFactory.cs   # Factory abstraction
+│   ├── AccountDataStore.cs           # Primary data store
+│   ├── BackupAccountDataStore.cs     # Backup data store
+│   └── AccountDataStoreFactory.cs   # Config-driven factory
+├── Extensions/
+│   └── PaymentRequestResultConverters.cs  # MakePaymentRequest <-> DTO mappers
+├── Services/
+│   ├── PaymentService.cs             # Core payment orchestration
+│   ├── IPaymentService.cs
+│   ├── IUnitOfWork.cs
+│   └── Validators/
+│       ├── IPaymentRequestValidator.cs
+│       ├── IPaymentSchemaValidator.cs
+│       ├── PaymentRequestValidator.cs   # Resolves correct schema validator
+│       ├── BacsPaymentValidator.cs
+│       ├── ChapsPaymentValidator.cs
+│       └── FasterPaymentsValidator.cs
+└── Types/
+    ├── MakePaymentRequest.cs         # Public API input
+    ├── MakePaymentResult.cs          # Public API output
+    ├── PaymentScheme.cs
+    ├── ResultType.cs
+    └── Domain/
+        ├── Account.cs                # Domain entity with balance logic
+        ├── AccountStatus.cs
+        ├── AllowedPaymentSchemes.cs
+        ├── PaymentRequestDto.cs      # Internal request representation
+        └── PaymentResultDto.cs       # Internal result representation
 ```
 
-## Domain Overview
+Tests use **xUnit** and **Moq**. All dependencies are injected via interfaces and mocked at the test boundary.
 
-The solution models a payment transfer between two bank accounts — a **debtor** (paying) account and a **creditor** (receiving) account — across three supported payment schemes: **Bacs**, **Chaps**, and **FasterPayments**.
-
-### Payment Flow
-
-```
-MakePayment(request)
-  │
-  ├─ Fetch debtor and creditor accounts from data store
-  ├─ Return error if either account not found
-  │
-  ├─ Validate request via PaymentRequestValidator
-  │   ├─ Amount must be greater than zero
-  │   ├─ Payment scheme must be supported
-  │   ├─ Scheme-specific validation (via IPaymentSchemaValidator)
-  │   └─ Debtor account must have sufficient balance
-  │
-  ├─ Return validation errors if invalid
-  │
-  └─ Execute within a transaction
-      ├─ Withdraw amount from debtor account
-      ├─ Deposit amount to creditor account
-      ├─ Persist both account updates
-      └─ Commit transaction
-```
-
-## Key Abstractions
-
-| Interface | Responsibility |
-|---|---|
-| `IPaymentService` | Entry point for initiating a payment |
-| `IPaymentRequestValidator` | Orchestrates all validation rules for a payment request |
-| `IPaymentSchemaValidator` | Scheme-specific validation rule (one per payment scheme) |
-| `IAccountDataStore` | Reads and writes account data |
-| `IAccountDataStoreFactory` | Creates the appropriate data store based on configuration |
-| `IUnitOfWork` / `ITransaction` | Wraps account updates in an atomic transaction |
-
-## Payment Schemes
-
-| Scheme | Validator | Rules |
-|---|---|---|
-| Bacs | `BacsPaymentValidator` | Debtor account must have Bacs enabled |
-| Chaps | `ChapsPaymentValidator` | Debtor account must have Chaps enabled and status must be `Live` |
-| FasterPayments | `FasterPaymentsValidator` | Debtor account must have FasterPayments enabled |
-
-Amount and balance validation applies to all schemes and is enforced centrally by `PaymentRequestValidator`.
-
-## Data Store Selection
-
-The active data store is selected at runtime via configuration:
-
-| `DataStoreType` config value | Data store used |
-|---|---|
-| `"Backup"` | `BackupAccountDataStore` |
-| Any other value / missing | `AccountDataStore` (default) |
-
-## Result Types
-
-`MakePaymentResult` returns one of three outcomes:
-
-| `ResultType` | `Success` | Meaning |
-|---|---|---|
-| `Success` | `true` | Payment processed successfully |
-| `ValidationFailed` | `false` | Request failed validation; `ValidationErrors` populated |
-| `Errored` | `false` | Unexpected error during processing; `ErrorMessage` populated |
-
-## Projects
-
-### `ClearBank.DeveloperTest`
-
-- **Target framework:** .NET 8
-- **Dependencies:** `Microsoft.Extensions.Configuration.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`
-
-### `ClearBank.DeveloperTest.Tests`
-
-- **Target framework:** .NET 8
-- **Test framework:** xUnit
-- **Mocking:** Moq
-
-## Running the Tests
+#### Running Tests
 
 ```bash
 dotnet test
 ```
 
-## Design Decisions
+With coverage:
 
-- **`Account` encapsulation** — properties have private setters; state changes go through `Withdraw(amount)` and `Deposit(amount)` domain methods, preventing external mutation.
-- **Immutable request** — `MakePaymentRequest` is a `readonly record struct`, making it safe to pass across boundaries without defensive copying.
-- **Strategy pattern for validators** — `IPaymentSchemaValidator` implementations are registered as a collection. Adding a new payment scheme requires only a new validator class with no changes to `PaymentRequestValidator` or `PaymentService`.
-- **Separation of validation concerns** — generic rules (amount, balance) live in `PaymentRequestValidator`; scheme-specific rules live in each `IPaymentSchemaValidator`.
-- **Structured logging** — `ILogger<PaymentService>` is injected and used with named properties on the exception path, compatible with log aggregation tools (Serilog, Application Insights, etc.).
-- **Unit of Work pattern** — account updates are wrapped in `IUnitOfWork` / `ITransaction`, keeping persistence concerns out of the service and enabling transactional rollback.
+```bash
+dotnet test --collect:"XPlat Code Coverage"
+reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"coverage-report" -reporttypes:"Html"
+```
+---
+## Future Improvements
 
+1. **Transaction Resilience:**
+    - Integrate with Polly for retry policies and circuit breakers.
+
+2. **Scheme Validation handlers:**
+    - Implement scheme validation handlers.
+
+3. **Account Service:**
+    - Implement Account Service to decouple PaymentService from account data store.
+
+4. **Add Money type:**
+    - Add a Money type to represent transaction amount and currency.

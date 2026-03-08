@@ -1,4 +1,5 @@
 using ClearBank.DeveloperTest.Types;
+using ClearBank.DeveloperTest.Types.Domain;
 
 namespace ClearBank.DeveloperTest.Services.Validators
 {

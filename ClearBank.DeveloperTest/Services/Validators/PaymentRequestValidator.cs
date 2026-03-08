@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ClearBank.DeveloperTest.Types.Domain;
 
 namespace ClearBank.DeveloperTest.Services.Validators
 {
@@ -23,11 +24,6 @@ namespace ClearBank.DeveloperTest.Services.Validators
         {
            var errors = new List<string>();
 
-            if (request.Amount <= 0)
-            {
-                errors.Add("Amount must be greater than zero.");
-            }
-
             //do we need to verify paymentDate i.e. can the payment date be in the past?
             //if required then we need IDateTimeProvider to be injected to get the current date and time
 
@@ -42,11 +38,6 @@ namespace ClearBank.DeveloperTest.Services.Validators
             if (!schemaValidator.IsValid(fromAccount, request))
             {
                errors.Add($"Payment scheme {request.PaymentScheme} validation failed for Debtor Account {request.DebtorAccountNumber}.");
-            }
-
-            if (fromAccount.Balance < request.Amount) //removed from FasterPayments.
-            {
-               errors.Add($"Insufficient balance in Debtor Account {request.DebtorAccountNumber}.");
             }
 
             return new ValidationResult { Errors = errors, IsValid = !errors.Any() };

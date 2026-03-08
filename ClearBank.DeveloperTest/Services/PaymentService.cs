@@ -1,5 +1,6 @@
 using System;
 using ClearBank.DeveloperTest.Data;
+using ClearBank.DeveloperTest.Extensions;
 using ClearBank.DeveloperTest.Services.Validators;
 using ClearBank.DeveloperTest.Types;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,7 @@ namespace ClearBank.DeveloperTest.Services
 
         public MakePaymentResult MakePayment(MakePaymentRequest request)
         {
+            //probably offload this to an account service
             var dataStore = _dataStoreFactory.Create();
             var fromAccount = dataStore.GetAccount(request.DebtorAccountNumber);
             var toAccount = dataStore.GetAccount(request.CreditorAccountNumber);
@@ -47,6 +49,14 @@ namespace ClearBank.DeveloperTest.Services
             {
                 return MakePaymentResult.ValidationFailedResponse("Request validation failed", validationResult.Errors);
             }
+            
+            var validateWithdrawResult = fromAccount.ValidateWithdraw(request.Amount);
+            if(!validateWithdrawResult.Success)
+                return validateWithdrawResult.ToResult();
+            
+            var validateDepositResult = toAccount.ValidateDeposit(request.Amount);
+            if(!validateDepositResult.Success)
+                return validateDepositResult.ToResult();
 
             try
             {

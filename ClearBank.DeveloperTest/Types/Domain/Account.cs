@@ -1,4 +1,4 @@
-﻿namespace ClearBank.DeveloperTest.Types
+﻿namespace ClearBank.DeveloperTest.Types.Domain
 {
     public class Account
     {
@@ -13,6 +13,25 @@
             Balance = balance;
             Status = accountStatus;
             AllowedPaymentSchemes = allowedPaymentSchemes;
+        }
+
+        public PaymentResultDto ValidateWithdraw(decimal amount)
+        {
+            if(amount<=0)
+                return PaymentResultDto.Error("Amount must be greater than zero");
+                
+            if (Balance < amount)
+                return PaymentResultDto.Error("Insufficient funds");
+            
+            return PaymentResultDto.SuccessResponse();
+        }
+
+        public PaymentResultDto ValidateDeposit(decimal amount)
+        {
+            if(amount<=0)
+                return PaymentResultDto.Error("Amount must be greater than zero");
+            
+            return PaymentResultDto.SuccessResponse();
         }
 
         public void Withdraw(decimal amount)

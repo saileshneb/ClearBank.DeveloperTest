@@ -3,6 +3,7 @@ using ClearBank.DeveloperTest.Data;
 using ClearBank.DeveloperTest.Services;
 using ClearBank.DeveloperTest.Services.Validators;
 using ClearBank.DeveloperTest.Types;
+using ClearBank.DeveloperTest.Types.Domain;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -175,6 +176,27 @@ namespace ClearBank.DeveloperTest.Tests
             Assert.Equal(ResultType.Errored, result.ResultType);
             Assert.Equal("Error making payment", result.ErrorMessage);
         }
+
+        // --- Account withdrawl / deposit validation ---
+
+        [Fact]
+        public void GivenWithdrawlValidationFails_WhenMakePaymentCalled_ReturnsError()
+        {
+            var fromAccount = new Account("DEB123", 10, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
+            var toAccount = new Account("CRED456", 0m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
+            _accountDataStoreMock.Setup(s => s.GetAccount("DEB123")).Returns(fromAccount);
+            _accountDataStoreMock.Setup(s => s.GetAccount("CRED456")).Returns(toAccount);
+            _paymentRequestValidatorMock
+                .Setup(v => v.Validate(fromAccount, DefaultRequest))
+                .Returns(new ValidationResult { IsValid = true });
+
+            var result = _sut.MakePayment(DefaultRequest);
+
+            Assert.False(result.Success);
+            Assert.Equal(ResultType.Errored, result.ResultType);
+            Assert.Equal("Insufficient funds", result.ErrorMessage);
+        }
+
 
         // --- Infrastructure interactions ---
 

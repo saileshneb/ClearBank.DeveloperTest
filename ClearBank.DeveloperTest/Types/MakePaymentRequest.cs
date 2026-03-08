@@ -2,7 +2,7 @@
 
 namespace ClearBank.DeveloperTest.Types
 {
-    public readonly record struct MakePaymentRequest(
+    public record MakePaymentRequest(
         string CreditorAccountNumber,
         string DebtorAccountNumber,
         decimal Amount,
@@ -10,3 +10,5 @@ namespace ClearBank.DeveloperTest.Types
         PaymentScheme PaymentScheme
     );
 }
+
+
