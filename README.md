@@ -42,6 +42,7 @@ A .NET 8 solution implementing a payment processing service, refactored with SOL
 - **Internal DTOs** — `PaymentRequestDto` and `PaymentResultDto` decouple internal processing from the public API types (`MakePaymentRequest` / `MakePaymentResult`). Extension methods in `PaymentRequestResultConverters` handle mapping at the boundary.
 - **Unit of work / transaction** — `IUnitOfWork` and `ITransaction` abstract the transactional boundary, making the service testable without a real database.
 
+*Note: Original implementation of MakePayment looked incomplete with only a withdrawl. I decided to add the deposit too as we had all the required information and seems logically correct*
 #### Project Structure
 
 ```
