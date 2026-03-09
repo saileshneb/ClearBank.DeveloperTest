@@ -19,9 +19,6 @@
         {
             if(amount<=0)
                 return PaymentResultDto.Error("Amount must be greater than zero");
-                
-            if (Balance < amount)
-                return PaymentResultDto.Error("Insufficient funds");
             
             return PaymentResultDto.SuccessResponse();
         }

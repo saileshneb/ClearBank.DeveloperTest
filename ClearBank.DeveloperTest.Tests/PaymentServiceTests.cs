@@ -182,19 +182,26 @@ namespace ClearBank.DeveloperTest.Tests
         [Fact]
         public void GivenWithdrawlValidationFails_WhenMakePaymentCalled_ReturnsError()
         {
+            var zeroAmountRequest = new MakePaymentRequest(
+            CreditorAccountNumber: "CRED456",
+            DebtorAccountNumber: "DEB123",
+            Amount: 0,
+            PaymentDate: DateTime.UtcNow,
+            PaymentScheme: PaymentScheme.Bacs
+        );
             var fromAccount = new Account("DEB123", 10, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             var toAccount = new Account("CRED456", 0m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             _accountDataStoreMock.Setup(s => s.GetAccount("DEB123")).Returns(fromAccount);
             _accountDataStoreMock.Setup(s => s.GetAccount("CRED456")).Returns(toAccount);
             _paymentRequestValidatorMock
-                .Setup(v => v.Validate(fromAccount, DefaultRequest))
+                .Setup(v => v.Validate(fromAccount, zeroAmountRequest))
                 .Returns(new ValidationResult { IsValid = true });
 
-            var result = _sut.MakePayment(DefaultRequest);
+            var result = _sut.MakePayment(zeroAmountRequest);
 
             Assert.False(result.Success);
             Assert.Equal(ResultType.Errored, result.ResultType);
-            Assert.Equal("Insufficient funds", result.ErrorMessage);
+            Assert.Equal("Amount must be greater than zero", result.ErrorMessage);
         }
 
 

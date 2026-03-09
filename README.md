@@ -107,3 +107,6 @@ reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"coverage-report
 
 4. **Add Money type:**
     - Add a Money type to represent transaction amount and currency.
+
+5. **Improve test layout:**
+   - Add test fixture class to consolidate common operation like creating accounts or requests.

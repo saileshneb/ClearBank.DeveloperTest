@@ -52,5 +52,12 @@ namespace ClearBank.DeveloperTest.Tests
             var account = new Account("", 100m, AccountStatus.Live, AllowedPaymentSchemes.FasterPayments);
             Assert.True(_sut.IsValid(account, Request(50m)));
         }
+
+        [Fact]
+        public void GivenInsufficientBalance_WhenIsValidCalled_ReturnsTrue()
+        {
+            var account = new Account("", 10m, AccountStatus.Live, AllowedPaymentSchemes.FasterPayments);
+            Assert.False(_sut.IsValid(account, Request(50m)));
+        }
     }
 }

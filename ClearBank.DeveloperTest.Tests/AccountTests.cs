@@ -33,17 +33,6 @@ public class AccountTests
     }
 
     [Fact]
-    public void GivenInsufficientFunds_WhenValidateWithdrawCalled_ReturnsError()
-    {
-        var account = MakeAccount(balance: 10m);
-
-        var result = account.ValidateWithdraw(50m);
-
-        Assert.False(result.Success);
-        Assert.Contains("Insufficient funds", result.ErrorMessage);
-    }
-
-    [Fact]
     public void GivenSufficientFunds_WhenValidateWithdrawCalled_ReturnsSuccess()
     {
         var account = MakeAccount(balance: 100m);
