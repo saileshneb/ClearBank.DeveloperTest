@@ -9,7 +9,6 @@ namespace ClearBank.DeveloperTest.Services.Validators
     public class PaymentRequestValidator : IPaymentRequestValidator
     {
         private readonly IEnumerable<IPaymentSchemaValidator> _schemaValidators;
-        const string ValidationFailedMessage = "Payment request validation failed.";
         //private readonly IDateTimeProvider _dateTimeProvider;
 
         public PaymentRequestValidator(IEnumerable<IPaymentSchemaValidator> schemaValidators)
@@ -21,9 +20,9 @@ namespace ClearBank.DeveloperTest.Services.Validators
         }
 
 
-        public MakePaymentResult Validate(Account fromAccount, MakePaymentRequest request)
+        public ValidationResult Validate(Account fromAccount, MakePaymentRequest request)
         {
-           var errors = new List<string>();
+            var errors = new List<string>();
 
             //do we need to verify paymentDate i.e. can the payment date be in the past?
             //if required then we need IDateTimeProvider to be injected to get the current date and time
@@ -33,20 +32,15 @@ namespace ClearBank.DeveloperTest.Services.Validators
             if (schemaValidator is null)
             {
                 errors.Add($"Unsupported payment scheme: {request.PaymentScheme}");
-                return MakePaymentResult.ValidationFailedResponse(ValidationFailedMessage, errors);
+                return new ValidationResult { Errors = errors, IsValid = false };
             }
 
             if (!schemaValidator.IsValid(fromAccount, request))
             {
-               errors.Add($"Payment scheme {request.PaymentScheme} validation failed for Debtor Account {request.DebtorAccountNumber}.");
+                errors.Add($"Payment scheme {request.PaymentScheme} validation failed for Debtor Account {request.DebtorAccountNumber}.");
             }
 
-            if (errors.Any())
-            {
-                return MakePaymentResult.ValidationFailedResponse(ValidationFailedMessage, errors);
-            }
-
-            return MakePaymentResult.SuccessResponse();
+            return new ValidationResult { Errors = errors, IsValid = !errors.Any() };
         }
     }
 }

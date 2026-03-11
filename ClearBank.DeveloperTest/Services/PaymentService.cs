@@ -44,12 +44,12 @@ namespace ClearBank.DeveloperTest.Services
                 return MakePaymentResult.Error("Creditor Account not found.");
 
             var validationResult = _paymentRequestValidator.Validate(fromAccount, request);
-            
-            if(validationResult.Success is false)
+
+            if (validationResult.IsValid is false)
             {
-                return validationResult;
+                return MakePaymentResult.ValidationFailedResponse("Request validation failed", validationResult.Errors);
             }
-            
+
             var validateWithdrawResult = fromAccount.ValidateWithdraw(request.Amount);
             if(!validateWithdrawResult.Success)
                 return validateWithdrawResult.ToResult();
