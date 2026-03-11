@@ -9,6 +9,7 @@ namespace ClearBank.DeveloperTest.Services.Validators
     public class PaymentRequestValidator : IPaymentRequestValidator
     {
         private readonly IEnumerable<IPaymentSchemaValidator> _schemaValidators;
+        const string ValidationFailedMessage = "Payment request validation failed.";
         //private readonly IDateTimeProvider _dateTimeProvider;
 
         public PaymentRequestValidator(IEnumerable<IPaymentSchemaValidator> schemaValidators)
@@ -20,7 +21,7 @@ namespace ClearBank.DeveloperTest.Services.Validators
         }
 
 
-        public ValidationResult Validate(Account fromAccount, MakePaymentRequest request)
+        public MakePaymentResult Validate(Account fromAccount, MakePaymentRequest request)
         {
            var errors = new List<string>();
 
@@ -32,7 +33,7 @@ namespace ClearBank.DeveloperTest.Services.Validators
             if (schemaValidator is null)
             {
                 errors.Add($"Unsupported payment scheme: {request.PaymentScheme}");
-                return new ValidationResult { Errors = errors, IsValid = false };
+                return MakePaymentResult.ValidationFailedResponse(ValidationFailedMessage, errors);
             }
 
             if (!schemaValidator.IsValid(fromAccount, request))
@@ -40,7 +41,12 @@ namespace ClearBank.DeveloperTest.Services.Validators
                errors.Add($"Payment scheme {request.PaymentScheme} validation failed for Debtor Account {request.DebtorAccountNumber}.");
             }
 
-            return new ValidationResult { Errors = errors, IsValid = !errors.Any() };
+            if (errors.Any())
+            {
+                return MakePaymentResult.ValidationFailedResponse(ValidationFailedMessage, errors);
+            }
+
+            return MakePaymentResult.SuccessResponse();
         }
     }
 }

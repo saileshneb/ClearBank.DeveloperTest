@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ClearBank.DeveloperTest.Data;
 using ClearBank.DeveloperTest.Services;
 using ClearBank.DeveloperTest.Services.Validators;
@@ -14,10 +15,10 @@ namespace ClearBank.DeveloperTest.Tests
     {
         private readonly Mock<IAccountDataStoreFactory> _dataStoreFactoryMock;
         private readonly Mock<IAccountDataStore> _accountDataStoreMock;
-        private readonly Mock<IPaymentRequestValidator> _paymentRequestValidatorMock;
         private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly Mock<ITransaction> _transactionMock;
         private readonly Mock<ILogger<PaymentService>> _loggerMock;
+        private readonly IPaymentRequestValidator _paymentRequestValidator;
         private readonly PaymentService _sut;
 
         private static readonly MakePaymentRequest DefaultRequest = new MakePaymentRequest(
@@ -32,7 +33,6 @@ namespace ClearBank.DeveloperTest.Tests
         {
             _dataStoreFactoryMock = new Mock<IAccountDataStoreFactory>();
             _accountDataStoreMock = new Mock<IAccountDataStore>();
-            _paymentRequestValidatorMock = new Mock<IPaymentRequestValidator>();
             _unitOfWorkMock = new Mock<IUnitOfWork>();
             _transactionMock = new Mock<ITransaction>();
             _loggerMock = new Mock<ILogger<PaymentService>>();
@@ -40,7 +40,17 @@ namespace ClearBank.DeveloperTest.Tests
             _dataStoreFactoryMock.Setup(f => f.Create()).Returns(_accountDataStoreMock.Object);
             _unitOfWorkMock.Setup(u => u.BeginTransaction()).Returns(_transactionMock.Object);
 
-            _sut = new PaymentService(_dataStoreFactoryMock.Object, _paymentRequestValidatorMock.Object, _unitOfWorkMock.Object, _loggerMock.Object);
+
+            var validators = new List<IPaymentSchemaValidator>
+            {
+                new BacsPaymentValidator(),
+                new FasterPaymentsValidator(),
+                new ChapsPaymentValidator()
+            };
+
+            _paymentRequestValidator = new PaymentRequestValidator(validators);
+
+            _sut = new PaymentService(_dataStoreFactoryMock.Object, _paymentRequestValidator, _unitOfWorkMock.Object, _loggerMock.Object);
         }
 
         // --- Debtor account not found ---
@@ -80,13 +90,10 @@ namespace ClearBank.DeveloperTest.Tests
         [Fact]
         public void GivenValidationFails_WhenMakePaymentCalled_ReturnsValidationFailure()
         {
-            var fromAccount = new Account("DEB123", 100m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
+            var fromAccount = new Account("DEB123", 100m, AccountStatus.Disabled, AllowedPaymentSchemes.Chaps);
             var toAccount = new Account("CRED456", 0m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             _accountDataStoreMock.Setup(s => s.GetAccount("DEB123")).Returns(fromAccount);
             _accountDataStoreMock.Setup(s => s.GetAccount("CRED456")).Returns(toAccount);
-            _paymentRequestValidatorMock
-                .Setup(v => v.Validate(fromAccount, DefaultRequest))
-                .Returns(new ValidationResult { IsValid = false, Errors = ["Scheme not supported."] });
 
             var result = _sut.MakePayment(DefaultRequest);
 
@@ -99,13 +106,10 @@ namespace ClearBank.DeveloperTest.Tests
         [Fact]
         public void GivenValidationFails_WhenMakePaymentCalled_BalancesAreUnchanged()
         {
-            var fromAccount = new Account("DEB123", 100m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
+            var fromAccount = new Account("DEB123", 100m, AccountStatus.Disabled, AllowedPaymentSchemes.Chaps);
             var toAccount = new Account("CRED456", 0m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             _accountDataStoreMock.Setup(s => s.GetAccount("DEB123")).Returns(fromAccount);
             _accountDataStoreMock.Setup(s => s.GetAccount("CRED456")).Returns(toAccount);
-            _paymentRequestValidatorMock
-                .Setup(v => v.Validate(fromAccount, DefaultRequest))
-                .Returns(new ValidationResult { IsValid = false, Errors = ["Scheme not supported."] });
 
             _sut.MakePayment(DefaultRequest);
 
@@ -122,9 +126,6 @@ namespace ClearBank.DeveloperTest.Tests
             var toAccount = new Account("CRED456", 0m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             _accountDataStoreMock.Setup(s => s.GetAccount("DEB123")).Returns(fromAccount);
             _accountDataStoreMock.Setup(s => s.GetAccount("CRED456")).Returns(toAccount);
-            _paymentRequestValidatorMock
-                .Setup(v => v.Validate(fromAccount, DefaultRequest))
-                .Returns(new ValidationResult { IsValid = true });
 
             var result = _sut.MakePayment(DefaultRequest);
 
@@ -142,9 +143,6 @@ namespace ClearBank.DeveloperTest.Tests
             var toAccount = new Account("CRED456", 0m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             _accountDataStoreMock.Setup(s => s.GetAccount("DEB123")).Returns(fromAccount);
             _accountDataStoreMock.Setup(s => s.GetAccount("CRED456")).Returns(toAccount);
-            _paymentRequestValidatorMock
-                .Setup(v => v.Validate(fromAccount, DefaultRequest))
-                .Returns(new ValidationResult { IsValid = true });
 
             _sut.MakePayment(DefaultRequest);
 
@@ -161,9 +159,6 @@ namespace ClearBank.DeveloperTest.Tests
             var toAccount = new Account("CRED456", 0m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             _accountDataStoreMock.Setup(s => s.GetAccount("DEB123")).Returns(fromAccount);
             _accountDataStoreMock.Setup(s => s.GetAccount("CRED456")).Returns(toAccount);
-            _paymentRequestValidatorMock
-                .Setup(v => v.Validate(fromAccount, DefaultRequest))
-                .Returns(new ValidationResult { IsValid = true });
 
             _accountDataStoreMock
                 .SetupSequence(s => s.UpdateAccount(It.IsAny<Account>()))
@@ -183,19 +178,16 @@ namespace ClearBank.DeveloperTest.Tests
         public void GivenWithdrawlValidationFails_WhenMakePaymentCalled_ReturnsError()
         {
             var zeroAmountRequest = new MakePaymentRequest(
-            CreditorAccountNumber: "CRED456",
-            DebtorAccountNumber: "DEB123",
-            Amount: 0,
-            PaymentDate: DateTime.UtcNow,
-            PaymentScheme: PaymentScheme.Bacs
-        );
+                CreditorAccountNumber: "CRED456",
+                DebtorAccountNumber: "DEB123",
+                Amount: 0,
+                PaymentDate: DateTime.UtcNow,
+                PaymentScheme: PaymentScheme.Bacs
+            );
             var fromAccount = new Account("DEB123", 10, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             var toAccount = new Account("CRED456", 0m, AccountStatus.Live, AllowedPaymentSchemes.Bacs);
             _accountDataStoreMock.Setup(s => s.GetAccount("DEB123")).Returns(fromAccount);
             _accountDataStoreMock.Setup(s => s.GetAccount("CRED456")).Returns(toAccount);
-            _paymentRequestValidatorMock
-                .Setup(v => v.Validate(fromAccount, zeroAmountRequest))
-                .Returns(new ValidationResult { IsValid = true });
 
             var result = _sut.MakePayment(zeroAmountRequest);
 

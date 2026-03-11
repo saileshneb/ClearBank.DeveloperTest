@@ -45,9 +45,9 @@ namespace ClearBank.DeveloperTest.Services
 
             var validationResult = _paymentRequestValidator.Validate(fromAccount, request);
             
-            if(validationResult.IsValid is false)
+            if(validationResult.Success is false)
             {
-                return MakePaymentResult.ValidationFailedResponse("Request validation failed", validationResult.Errors);
+                return validationResult;
             }
             
             var validateWithdrawResult = fromAccount.ValidateWithdraw(request.Amount);

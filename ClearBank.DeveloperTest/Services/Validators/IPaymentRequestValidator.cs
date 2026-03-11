@@ -5,6 +5,6 @@ namespace ClearBank.DeveloperTest.Services.Validators
 {
     public interface IPaymentRequestValidator
     {
-        ValidationResult Validate(Account fromAccount, MakePaymentRequest request);
+        MakePaymentResult Validate(Account fromAccount, MakePaymentRequest request);
     }
 }

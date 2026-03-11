@@ -35,8 +35,8 @@ namespace ClearBank.DeveloperTest.Tests
         {
             var result = _sut.Validate(GetAccount(), Request(scheme: PaymentScheme.Chaps));
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.Contains("Chaps"));
+            Assert.False(result.Success);
+            Assert.Contains(result.ValidationErrors, e => e.Contains("Chaps"));
         }
 
         [Fact]
@@ -59,8 +59,8 @@ namespace ClearBank.DeveloperTest.Tests
 
             var result = _sut.Validate(account, request);
 
-            Assert.False(result.IsValid);
-            Assert.Contains(result.Errors, e => e.Contains("DEB123"));
+            Assert.False(result.Success);
+            Assert.Contains(result.ValidationErrors, e => e.Contains("DEB123"));
         }
 
         // --- Happy path ---
@@ -70,8 +70,8 @@ namespace ClearBank.DeveloperTest.Tests
         {
             var result = _sut.Validate(GetAccount(balance: 100m), Request(amount: 50m));
 
-            Assert.True(result.IsValid);
-            Assert.Empty(result.Errors);
+            Assert.True(result.Success);
+            Assert.Empty(result.ValidationErrors);
         }
     }
 }
